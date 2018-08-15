@@ -23,8 +23,8 @@ var config = {
       turn: 0,
       wins: 0,
       loses: 0,
-      p1choice,
-      p2choice,
+      p1choice: "",
+      p2choice: "",
       state: "false",
         load:function(){
             var login = $("<form>");
@@ -48,11 +48,13 @@ var config = {
         },
         makeMove: function(event){
             if (gameObj.turn === 1){
-                var move = $(event.target).val();
+                var move = $(event.target).text();
+                alert(move);
+                gameObj.turn = 0;
                 if (gameObj.player === 1){
-                    database.ref("dbo_rps_table/pOneMove").update({move});
+                    database.ref("dbo_rps_table").update({"pOneMove":move});
                 } else if (gameObj.player === 2){
-                    database.ref("dbo_rps_table/pTwoMove").update({move});
+                    database.ref("dbo_rps_table").update({"pTwoMove":move});
                 }
             }
         },
@@ -62,14 +64,21 @@ var config = {
             }
         },
         waitForMove: function(data){
-            if (data.val() === "none"){
-            } else {
+            console.log(data.val())
+            if (data.val() != "none"){
                 if (gameObj.player === 2){
                     gameObj.turn === 1;
                     $(".playerTwoChoices").show();
                 } else if (gameObj.player === 1) {
                     gameObj.compare(p1choice,data.val());
                 }
+            }
+        },
+        moveReset: function(data){
+            try {
+                
+            } catch (error) {
+                console.error(error);
             }
         },
         compare:function(p1, p2){
@@ -100,80 +109,92 @@ var config = {
             }
         },
         loadGame: function(){
-            database.ref("dbo_rps_table").once("value",function(data){
-                gameObj.playerOne = data.child("playerOne").val();
-                gameObj.playerTwo = data.child("playerTwo").val();
-            });
-            database.ref("dbo_rps_table").on("value",function(data){
-                if (data.child("admin") == "yes"){
-                    var container = $("<div>");
-                    container.addClass("container");
-                    $(".bgi").empty();
-                    $(".bgi").append(container);
-                    gameObj.displayName = "";
-                    gameObj.playerOne = "";
-                    gameObj.playerTwo = "";
-                    gameObj.player = 0;
-                    gameObj.turn = 0;
-                    gameObj.state = "false";
-                    gameObj.load();
-                    database.ref("dbo_rps_table").update({
-                        "admin": "no"
-                    });
-                    return;
+            try {
+                database.ref("dbo_rps_table").once("value",function(data){
+                    gameObj.playerOne = data.child("playerOne").val();
+                    gameObj.playerTwo = data.child("playerTwo").val();
+                });
+                database.ref("dbo_rps_table").on("value",function(data){
+                    if (data.child("admin") == "yes"){
+                        var container = $("<div>");
+                        container.addClass("container");
+                        $(".bgi").empty();
+                        $(".bgi").append(container);
+                        gameObj.displayName = "";
+                        gameObj.playerOne = "";
+                        gameObj.playerTwo = "";
+                        gameObj.player = 0;
+                        gameObj.turn = 0;
+                        gameObj.state = "false";
+                        gameObj.load();
+                        database.ref("dbo_rps_table").update({
+                            "admin": "no"
+                        });
+                        return;
+                    }
+                });
+                var gameContainer = $("<div>");
+                gameContainer.addClass("gameContainer");
+                var playerOne = $("<div>");
+                playerOne.addClass("playerOne");
+                var name1 = $("<h2>");
+                name1.text(gameObj.playerOne);
+                var form = $("<form>");
+                form.addClass("playerOneChoices");
+                var choice1 = $("<label>").addClass("choice").text("ROCK");
+                var choice2 = $("<label>").addClass("choice").text("PAPER");
+                var choice3 = $("<label>").addClass("choice").text("SCISSORS");
+                form.append(choice1,$("<br>"),choice2,$("<br>"),choice3);
+                var stats = $("<h2>");
+                stats.addClass("p1stats");
+                playerOne.append(name1,$("<br>"),form,$("<br>"),stats);
+                var playerTwo = $("<div>");
+                playerTwo.addClass("playerTwo");
+                var name2 = $("<h2>");
+                name2.text(gameObj.playerTwo);
+                var form2 = $("<form>");
+                form2.addClass("playerTwoChoices");
+                var choice1 = $("<label>").addClass("choice").text("ROCK");
+                var choice2 = $("<label>").addClass("choice").text("PAPER");
+                var choice3 = $("<label>").addClass("choice").text("SCISSORS");
+                form2.append(choice1,$("<br>"),choice2,$("<br>"),choice3);
+                var stats = $("<h2>");
+                stats.addClass("p2stats");
+                playerTwo.append(name2,$("<br>"),form2,$("<br>"),stats);
+                var winner = $("<div>");
+                winner.addClass("winner");
+                var h1 = $("<h1>");
+                h1.addClass("winnerHeader");
+                h1.text("WINNER:");
+                winner.append(h1);
+                gameContainer.append(playerOne,winner,playerTwo);
+
+                $(".bgi").empty();
+                $(".bgi").append(gameContainer);
+                var funzone = $("<div>");
+                funzone.addClass("funzone");
+                var funbutton = $("<button>");
+                funbutton.addClass("funbutton");
+                funbutton.attr("type","button");
+                funbutton.text("RESET");
+                funbutton.on("click",gameObj.adminReset);
+                funzone.append(funbutton);
+                $(".bgi").append(funzone);
+
+                if (gameObj.player > 0) {
+                    $(".choice").on("click", gameObj.makeMove);
+                    database.ref("dbo_rps_table/turn").on("value",gameObj.moveReset);
                 }
-            });
-            var gameContainer = $("<div>");
-            gameContainer.addClass("gameContainer");
-            var playerOne = $("<div>");
-            playerOne.addClass("playerOne");
-            var name1 = $("<h2>");
-            name1.text(gameObj.playerOne);
-            var form = $("<form>");
-            form.addClass("playerOneChoices");
-            var choice1 = $("<label>").addClass("choice").text("ROCK");
-            var choice2 = $("<label>").addClass("choice").text("PAPER");
-            var choice3 = $("<label>").addClass("choice").text("SCISSORS");
-            form.append(choice1,$("<br>"),choice2,$("<br>"),choice3);
-            var stats = $("<h2>");
-            stats.addClass("p1stats");
-            playerOne.append(name1,$("<br>"),form,$("<br>"),stats);
-            var playerTwo = $("<div>");
-            playerTwo.addClass("playerTwo");
-            var name2 = $("<h2>");
-            name2.text(gameObj.playerTwo);
-            var form2 = $("<form>");
-            form2.addClass("playerTwoChoices");
-            var choice1 = $("<label>").addClass("choice").text("ROCK");
-            var choice2 = $("<label>").addClass("choice").text("PAPER");
-            var choice3 = $("<label>").addClass("choice").text("SCISSORS");
-            form2.append(choice1,$("<br>"),choice2,$("<br>"),choice3);
-            var stats = $("<h2>");
-            stats.addClass("p2stats");
-            playerTwo.append(name2,$("<br>"),form2,$("<br>"),stats);
-            gameContainer.append(playerOne,playerTwo);
-
-            $(".bgi").empty();
-            $(".bgi").append(gameContainer);
-            var funzone = $("<div>");
-            funzone.addClass("funzone");
-            var funbutton = $("<button>");
-            funbutton.addClass("funbutton");
-            funbutton.attr("type","button");
-            funbutton.text("RESET");
-            funbutton.on("click",gameObj.adminReset);
-            funzone.append(funbutton);
-            $(".bgi").append(funzone);
-
-            if (gameObj.player > 0) {
-                $(document.body).on("click",".choice", gameObj.makeMove);
+                if (gameObj.player === 1) {
+                    database.ref("dbo_rps_table/pTwoMove").on("value",gameObj.waitForMove);
+                    gameObj.turn = 1;
+                } else if(gameObj.player === 2){
+                    database.ref("dbo_rps_table/pOneMove").on("value",gameObj.waitForMove);
+                }
+                database.ref("dbo_rps_table/winner").on("value",gameObj.declareWinner);
+            } catch (error) {
+                console.error(error);
             }
-            if (gameObj.player === 1) {
-                database.ref("dbo_rps_table/pTwoMove").on("value",gameObj.waitForMove);
-            } else if(gameObj.player === 2){
-                database.ref("dbo_rps_table/pOneMove").on("value",gameObj.waitForMove);
-            }
-            data.ref("dbo_rps_table/winner").on("value",gameObj.declareWinner);
         },
         login: function(event){
             event.preventDefault();
@@ -223,12 +244,36 @@ var config = {
             });
         },
         declareWinner: function(data){
-            if(data.val() != "none"){
-                $(".playerOneChoices").hide();
-                $(".playerTwoChoices").hide();
-                var p1 = database.ref("dbo_rps_table").val();
-                var p2 = database.ref("dbo_rps_table").val();
-            }
+            try {
+                if(data.val() != "none"){
+                    $(".playerOneChoices").hide();
+                    $(".playerTwoChoices").hide();
+                    var p1 = database.ref("dbo_rps_table").val();
+                    var p2 = database.ref("dbo_rps_table").val();
+                    var p1c = $("<img>");
+                    p1c.attr("id","p1c");
+                    p1c.attr("src","assets/media/" + p1 + ".png");
 
+                    var p2c = $("<img>");
+                    p2c.attr("id","p2c");
+                    p2c.attr("src","assets/media/" + p2 + ".png");
+
+                    var h1 = $("<h1>");
+                    h1.attr("id","winnerHeader");
+                    h1.text(data.val());
+                    $(".winner").append(h1).show();
+                    $(".playerOne").prepend(p1c);
+                    $(".playerTwo").prepend(p2c);
+                    setTimeout(function(){
+                        $("#p1c").remove();
+                        $("#p2c").remove();
+                        $("#winnerHeader").remove();
+                        $(".winner").hide();
+                        database.ref("dbo_rps_table").update({"turn":"1"});
+                    },2000);
+                }
+            } catch (error) {
+                console.error(error);
+            }
         },
   };
